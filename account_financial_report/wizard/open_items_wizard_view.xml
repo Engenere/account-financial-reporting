@@ -17,6 +17,9 @@
                     <group name="date_range">
                         <field name="date_at" />
                         <field name="date_from" />
+                        <field name="due_date_from" />
+                        <field name="due_date_at" />
+                        <field name="sort_report_type" />
                     </group>
                     <group name="other_filters">
                         <field name="target_move" widget="radio" />
