@@ -66,10 +66,24 @@ class OpenItemsReport(models.AbstractModel):
         only_posted_moves,
         company_id,
         date_from,
+        due_date_from,
+        due_date_to,
+        sort_report_type,
     ):
         domain = self._get_move_lines_domain_not_reconciled(
             company_id, account_ids, partner_ids, only_posted_moves, date_from
         )
+        if date_from:
+            domain += [("date", ">=", date_from)]
+        if date_at_object:
+            domain += [("date", "<=", date_at_object)]
+
+        # conditions to filter by due date
+        if due_date_from:
+            domain += [("date_maturity", ">=", due_date_from)]
+        if due_date_to:
+            domain += [("date_maturity", "<=", due_date_to)]
+
         ml_fields = self._get_ml_fields()
         move_lines = self.env["account.move.line"].search_read(
             domain=domain, fields=ml_fields
@@ -206,7 +220,11 @@ class OpenItemsReport(models.AbstractModel):
 
     @api.model
     def _order_open_items_by_date(
-        self, open_items_move_lines_data, show_partner_details, partners_data
+        self,
+        open_items_move_lines_data,
+        show_partner_details,
+        partners_data,
+        sort_report_type,
     ):
         new_open_items = {}
         if not show_partner_details:
@@ -216,7 +234,13 @@ class OpenItemsReport(models.AbstractModel):
                 for prt_id in open_items_move_lines_data[acc_id]:
                     for move_line in open_items_move_lines_data[acc_id][prt_id]:
                         move_lines += [move_line]
-                move_lines = sorted(move_lines, key=lambda k: (k["date"]))
+                if sort_report_type == "due_date":
+                    move_lines = sorted(
+                        move_lines,
+                        key=lambda k: datetime.strptime(k["date_maturity"], "%d/%m/%Y"),
+                    )
+                elif sort_report_type == "invoice_date":
+                    move_lines = sorted(move_lines, key=lambda k: (k["date"]))
                 new_open_items[acc_id] = move_lines
         else:
             for acc_id in open_items_move_lines_data.keys():
@@ -229,7 +253,15 @@ class OpenItemsReport(models.AbstractModel):
                     move_lines = []
                     for move_line in open_items_move_lines_data[acc_id][prt_id]:
                         move_lines += [move_line]
-                    move_lines = sorted(move_lines, key=lambda k: (k["date"]))
+                    if sort_report_type == "due_date":
+                        move_lines = sorted(
+                            move_lines,
+                            key=lambda k: datetime.strptime(
+                                k["date_maturity"], "%d/%m/%Y"
+                            ),
+                        )
+                    elif sort_report_type == "invoice_date":
+                        move_lines = sorted(move_lines, key=lambda k: (k["date"]))
                     new_open_items[acc_id][prt_id] = move_lines
         return new_open_items
 
@@ -242,9 +274,19 @@ class OpenItemsReport(models.AbstractModel):
         date_at = data["date_at"]
         date_at_object = datetime.strptime(date_at, "%Y-%m-%d").date()
         date_from = data["date_from"]
+        due_date_at = data["due_date_at"]
+        due_date_from = data["due_date_from"]
         only_posted_moves = data["only_posted_moves"]
         show_partner_details = data["show_partner_details"]
-
+        sort_report_type = data["sort_report_type"]
+        try:
+            due_date_at_object = (
+                datetime.strptime(due_date_at, "%Y-%m-%d").date()
+                if due_date_at
+                else None
+            )
+        except ValueError:
+            due_date_at_object = None
         (
             move_lines_data,
             partners_data,
@@ -258,11 +300,17 @@ class OpenItemsReport(models.AbstractModel):
             only_posted_moves,
             company_id,
             date_from,
+            due_date_from,
+            due_date_at,
+            sort_report_type,
         )
 
         total_amount = self._calculate_amounts(open_items_move_lines_data)
         open_items_move_lines_data = self._order_open_items_by_date(
-            open_items_move_lines_data, show_partner_details, partners_data
+            open_items_move_lines_data,
+            show_partner_details,
+            partners_data,
+            sort_report_type,
         )
         return {
             "doc_ids": [wizard_id],
@@ -280,6 +328,9 @@ class OpenItemsReport(models.AbstractModel):
             "accounts_data": accounts_data,
             "total_amount": total_amount,
             "Open_Items": open_items_move_lines_data,
+            "due_date_at": due_date_at_object.strftime("%d/%m/%Y")
+            if due_date_at_object
+            else None,
         }
 
     def _get_ml_fields(self):

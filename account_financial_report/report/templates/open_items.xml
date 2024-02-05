@@ -108,12 +108,17 @@
         <div class="act_as_table data_table" style="width: 100%;">
             <div class="act_as_row labels">
                 <div class="act_as_cell">Date at filter</div>
+                <div class="act_as_cell">Due Date at filter</div>
                 <div class="act_as_cell">Target moves filter</div>
                 <div class="act_as_cell">Account balance at 0 filter</div>
+                <div class="act_as_cell">Sort mode</div>
             </div>
             <div class="act_as_row">
                 <div class="act_as_cell">
                     <span t-esc="date_at" />
+                </div>
+                <div class="act_as_cell">
+                    <span t-esc="due_date_at" />
                 </div>
                 <div class="act_as_cell">
                     <t t-if="target_move == 'posted'">All posted entries</t>
@@ -122,6 +127,11 @@
                 <div class="act_as_cell">
                     <t t-if="hide_account_at_0">Hide</t>
                     <t t-if="not hide_account_at_0">Show</t>
+                </div>
+                <div class="act_as_cell">
+                    <span
+                        t-esc="{'invoice_date': 'Invoice Date', 'due_date': 'Due Date'}.get(sort_report_type)"
+                    />
                 </div>
             </div>
         </div>

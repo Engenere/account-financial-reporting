@@ -15,6 +15,14 @@ class OpenItemsReportWizard(models.TransientModel):
 
     date_at = fields.Date(required=True, default=fields.Date.context_today)
     date_from = fields.Date(string="Date From")
+    due_date_from = fields.Date(string="Date From")
+    due_date_at = fields.Date(string="At")
+    sort_report_type = fields.Selection(
+        [("invoice_date", "Invoice Date"), ("due_date", "Due Date")],
+        string="Sort By",
+        required=True,
+        default="invoice_date",
+    )
     target_move = fields.Selection(
         [("posted", "All Posted Entries"), ("all", "All Entries")],
         string="Target Moves",
@@ -154,6 +162,7 @@ class OpenItemsReportWizard(models.TransientModel):
 
     def _prepare_report_open_items(self):
         self.ensure_one()
+
         return {
             "wizard_id": self.id,
             "date_at": fields.Date.to_string(self.date_at),
@@ -167,6 +176,11 @@ class OpenItemsReportWizard(models.TransientModel):
             "account_ids": self.account_ids.ids,
             "partner_ids": self.partner_ids.ids or [],
             "account_financial_report_lang": self.env.lang,
+            "due_date_at": fields.Date.to_string(self.due_date_at),
+            "due_date_from": fields.Date.to_string(self.due_date_from)
+            if self.due_date_from
+            else False,
+            "sort_report_type": self.sort_report_type,
         }
 
     def _export(self, report_type):
