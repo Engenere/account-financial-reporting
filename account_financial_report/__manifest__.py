@@ -36,6 +36,7 @@
         "report/templates/trial_balance.xml",
         "report/templates/vat_report.xml",
         "view/account_view.xml",
+        "view/account_journal_dashboard_view.xml",
         "view/report_general_ledger.xml",
         "view/report_journal_ledger.xml",
         "view/report_trial_balance.xml",

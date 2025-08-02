@@ -22,6 +22,12 @@ class GeneralLedgerReportWizard(models.TransientModel):
     _description = "General Ledger Report Wizard"
     _inherit = "account_financial_report_abstract_wizard"
 
+    @api.model
+    def default_get(self, fields):
+        res = super().default_get(fields)
+        print("Contexto chegando no wizard: %s", self.env.context)
+        return res
+
     date_range_id = fields.Many2one(comodel_name="date.range", string="Date range")
     date_from = fields.Date(required=True, default=lambda self: self._init_date_from())
     date_to = fields.Date(required=True, default=fields.Date.context_today)
@@ -228,6 +234,10 @@ class GeneralLedgerReportWizard(models.TransientModel):
     @api.onchange("receivable_accounts_only", "payable_accounts_only")
     def onchange_type_accounts_only(self):
         """Handle receivable/payable accounts only change."""
+        if self.env.context.get("default_account_ids"):
+            # A predefined list is already present—leave it untouched.
+            # TODO esse onchange é executado após o default_gey
+            return
         if self.receivable_accounts_only or self.payable_accounts_only:
             domain = [("company_id", "=", self.company_id.id)]
             if self.receivable_accounts_only and self.payable_accounts_only:
